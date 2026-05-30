@@ -1,0 +1,1211 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Barista King">
+  <meta name="theme-color" content="#07060a">
+  <title>Barista King</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icon.svg">
+  <style>
+    :root {
+      --bg:          #07060a;
+      --surface:     #0f0d14;
+      --card:        #13111a;
+      --card2:       #18151f;
+      --border:      #2a2535;
+      --border-gold: rgba(200,168,80,0.18);
+      --primary:     #c8a84b;
+      --primary-dim: #7a6428;
+      --primary-glow:rgba(200,168,75,0.12);
+      --text:        #f0ead8;
+      --text-dim:    #7a7060;
+      --success:     #4a9e68;
+      --danger:      #9e3a2e;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+    html, body {
+      height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', sans-serif;
+      overflow: hidden;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    #app {
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      max-width: 430px;
+      margin: 0 auto;
+      position: relative;
+    }
+
+    /* ── VIEWS ── */
+    .view { display: none; flex-direction: column; height: 100%; overflow: hidden; }
+    .view.active { display: flex; }
+
+    .scroll-area { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+
+    /* ── HEADER ── */
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 20px;
+      padding-top: calc(14px + env(safe-area-inset-top));
+      background: var(--bg);
+      border-bottom: 1px solid var(--border-gold);
+      flex-shrink: 0;
+      z-index: 10;
+    }
+
+    .header-title {
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      background: linear-gradient(135deg, #e8c86a 0%, #c8a84b 50%, #a07828 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .header-sub { font-size: 10px; color: var(--text-dim); margin-top: 2px; letter-spacing: 1.5px; text-transform: uppercase; }
+
+    .icon-btn {
+      width: 38px; height: 38px;
+      border-radius: 12px;
+      border: 1px solid var(--border-gold);
+      background: var(--card2);
+      color: var(--primary);
+      font-size: 16px;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: background .15s, border-color .15s;
+    }
+    .icon-btn:active { background: var(--border); }
+
+    /* ── HOME ── */
+    .drinks-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+      padding: 18px;
+    }
+
+    .drink-card {
+      background: linear-gradient(160deg, var(--card2) 0%, var(--card) 100%);
+      border: 1px solid var(--border-gold);
+      border-radius: 20px;
+      padding: 20px 14px 16px;
+      cursor: pointer;
+      text-align: center;
+      transition: transform .16s, box-shadow .16s;
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 4px 24px rgba(0,0,0,.45);
+    }
+    .drink-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(200,168,80,.35), transparent);
+    }
+    .drink-card:active { transform: scale(.95); box-shadow: 0 2px 10px rgba(0,0,0,.4); }
+
+    .drink-card.custom-card {
+      border-style: dashed;
+      border-color: rgba(200,168,80,.25);
+      background: linear-gradient(160deg, #100e16, #0c0b12);
+    }
+
+    .card-emoji { font-size: 34px; margin-bottom: 10px; display: block; }
+    .card-name  { font-size: 13px; font-weight: 600; color: var(--text); line-height: 1.3; margin-bottom: 8px; letter-spacing: .2px; }
+    .card-time  { font-size: 11px; color: var(--primary); font-weight: 600; letter-spacing: .5px; }
+    .card-steps { font-size: 10px; color: var(--text-dim); margin-top: 3px; letter-spacing: .3px; }
+
+    .multi-badge {
+      position: absolute;
+      top: 11px; right: 11px;
+      background: linear-gradient(135deg, #c8a84b, #a07828);
+      color: #07060a;
+      font-size: 8px;
+      font-weight: 800;
+      padding: 3px 7px;
+      border-radius: 8px;
+      letter-spacing: .5px;
+      text-transform: uppercase;
+    }
+
+    /* ── BREW VIEW ── */
+    .brew-inner {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 18px 24px;
+      gap: 20px;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    /* Step dots */
+    .step-dots { display: flex; gap: 8px; align-items: center; }
+    .step-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: var(--border);
+      transition: all .35s cubic-bezier(.4,0,.2,1);
+    }
+    .step-dot.active { width: 24px; border-radius: 4px; background: linear-gradient(90deg,#e8c86a,#c8a84b); }
+    .step-dot.done   { background: var(--success); }
+
+    /* Capsule info */
+    .capsule-info { text-align: center; }
+    .capsule-label { font-size: 12px; color: var(--text-dim); margin-bottom: 4px; }
+    .capsule-type  { font-size: 15px; font-weight: 600; }
+
+    /* ── CAPSULE VISUAL ── */
+    .capsule-visual {
+      width: 112px;
+      height: 160px;
+      border-radius: 56px 56px 40px 40px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 28px 16px 32px;
+      position: relative;
+      overflow: hidden;
+      box-shadow:
+        0 20px 60px rgba(0,0,0,.7),
+        0 0 0 1px rgba(200,168,80,.15),
+        inset 0 2px 8px rgba(255,255,255,.12);
+      transition: background-color .4s;
+    }
+
+    /* Flat top notch */
+    .capsule-visual::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 50%;
+      transform: translateX(-50%);
+      width: 36px; height: 13px;
+      background: rgba(0,0,0,.35);
+      border-radius: 0 0 8px 8px;
+    }
+
+    /* Shine */
+    .capsule-visual::after {
+      content: '';
+      position: absolute;
+      top: 16px; left: 15px;
+      width: 16px; height: 55px;
+      background: rgba(255,255,255,.1);
+      border-radius: 8px;
+      transform: rotate(-12deg);
+    }
+
+    .capsule-visual.white { background: linear-gradient(155deg, #f8ecda, #ddc898); }
+    .capsule-visual.brown { background: linear-gradient(155deg, #6e3818, #321408); }
+    .capsule-visual.custom-cap { background: linear-gradient(155deg, #2c4a6e, #12233a); }
+
+    .capsule-bars { display: flex; flex-direction: column; align-items: center; gap: 9px; width: 100%; position: relative; z-index: 1; }
+
+    .capsule-bar {
+      width: 62px; height: 5px;
+      border-radius: 3px;
+      transition: opacity .45s ease, transform .45s ease;
+    }
+    .capsule-visual.white  .capsule-bar { background: rgba(90,50,10,.55); }
+    .capsule-visual.brown  .capsule-bar { background: rgba(255,200,120,.65); }
+    .capsule-visual.custom-cap .capsule-bar { background: rgba(150,210,255,.65); }
+
+    .capsule-bar.empty { opacity: .12; transform: scaleX(.7); }
+
+    /* ── TIMER ── */
+    .timer-block { text-align: center; }
+    .timer-num {
+      font-size: 82px;
+      font-weight: 100;
+      line-height: 1;
+      font-variant-numeric: tabular-nums;
+      letter-spacing: -3px;
+      transition: color .5s;
+    }
+    .timer-unit { font-size: 11px; color: var(--text-dim); margin-top: 6px; letter-spacing: 2px; text-transform: uppercase; }
+    .water-info { font-size: 13px; color: var(--text-dim); margin-top: 8px; }
+    .water-info strong { color: var(--primary); font-weight: 600; }
+
+    /* ── PROGRESS ── */
+    .progress-track {
+      width: 100%;
+      height: 3px;
+      background: rgba(255,255,255,.06);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--primary-dim), var(--primary));
+      border-radius: 2px;
+      transition: width .5s linear, background .5s;
+    }
+
+    /* ── BUTTONS ── */
+    .btn-main {
+      width: 100%;
+      padding: 17px;
+      border: none;
+      border-radius: 16px;
+      font-size: 16px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: transform .1s, opacity .1s, box-shadow .1s;
+      margin-bottom: env(safe-area-inset-bottom, 0px);
+      flex-shrink: 0;
+    }
+    .btn-main:active { transform: scale(.97); opacity: .88; }
+    .btn-main.start {
+      background: linear-gradient(135deg, #e8c86a 0%, #c8a84b 50%, #a07828 100%);
+      color: #07060a;
+      box-shadow: 0 6px 28px rgba(200,168,75,.28);
+    }
+    .btn-main.running {
+      background: linear-gradient(135deg, #c0483a, #8c2a20);
+      color: #fff;
+      box-shadow: 0 6px 20px rgba(160,60,45,.25);
+    }
+    .btn-main.resume {
+      background: linear-gradient(135deg, #4a9e68, #2e6a45);
+      color: #fff;
+      box-shadow: 0 6px 20px rgba(74,158,104,.2);
+    }
+
+    /* ── OVERLAYS ── */
+    .overlay {
+      position: fixed; inset: 0;
+      background: rgba(4,3,8,.92);
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 200;
+      padding: 32px 28px;
+      text-align: center;
+      gap: 16px;
+      backdrop-filter: blur(12px);
+    }
+    .overlay.show { display: flex; }
+
+    .overlay-icon  { font-size: 72px; }
+    .overlay-title {
+      font-size: 24px; font-weight: 700;
+      background: linear-gradient(135deg, #e8c86a, #c8a84b);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text;
+      letter-spacing: .3px;
+    }
+    .overlay-body  { font-size: 15px; color: var(--text); line-height: 1.7; opacity: .85; }
+
+    .overlay-icon.pop { animation: pop .5s cubic-bezier(.175,.885,.32,1.275) both; }
+    @keyframes pop { 0%{transform:scale(0)} 100%{transform:scale(1)} }
+
+    .btn-overlay {
+      width: 100%; padding: 16px;
+      background: linear-gradient(135deg, #e8c86a, #c8a84b, #a07828);
+      color: #07060a;
+      border: none; border-radius: 14px;
+      font-size: 15px; font-weight: 800;
+      letter-spacing: 1.5px; text-transform: uppercase;
+      cursor: pointer; margin-top: 8px;
+      box-shadow: 0 6px 24px rgba(200,168,75,.22);
+    }
+    .btn-overlay:active { opacity: .85; }
+    .btn-overlay.secondary {
+      background: var(--card2); color: var(--text-dim);
+      border: 1px solid var(--border-gold); margin-top: 4px;
+      box-shadow: none;
+    }
+
+    .done-title {
+      background: linear-gradient(135deg, #6edc8e, #4a9e68) !important;
+      -webkit-background-clip: text !important;
+      -webkit-text-fill-color: transparent !important;
+      background-clip: text !important;
+    }
+
+    /* ── SETTINGS ── */
+    .settings-body { padding: 12px 18px 32px; }
+
+    .settings-section-title {
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--primary-dim);
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      margin: 24px 0 10px 4px;
+    }
+
+    .settings-group {
+      background: linear-gradient(160deg, var(--card2), var(--card));
+      border: 1px solid var(--border-gold);
+      border-radius: 18px;
+      overflow: hidden;
+      box-shadow: 0 4px 20px rgba(0,0,0,.35);
+    }
+
+    .settings-row {
+      display: flex; align-items: center;
+      justify-content: space-between;
+      padding: 16px 20px;
+      border-bottom: 1px solid rgba(200,168,80,.08);
+    }
+    .settings-row:last-child { border-bottom: none; }
+
+    .row-label { font-size: 15px; font-weight: 500; letter-spacing: .2px; }
+    .row-desc  { font-size: 11px; color: var(--text-dim); margin-top: 3px; letter-spacing: .2px; }
+
+    /* Toggle */
+    .toggle { position: relative; width: 50px; height: 28px; flex-shrink: 0; }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .toggle-track {
+      position: absolute; inset: 0;
+      background: rgba(255,255,255,.08);
+      border-radius: 14px;
+      cursor: pointer;
+      transition: background .3s;
+      border: 1px solid rgba(255,255,255,.06);
+    }
+    .toggle-track::after {
+      content: '';
+      position: absolute;
+      width: 22px; height: 22px;
+      left: 3px; top: 3px;
+      background: #e0d8c8;
+      border-radius: 50%;
+      transition: transform .3s;
+      box-shadow: 0 2px 6px rgba(0,0,0,.5);
+    }
+    .toggle input:checked + .toggle-track { background: linear-gradient(135deg, #c8a84b, #a07828); border-color: transparent; }
+    .toggle input:checked + .toggle-track::after { transform: translateX(22px); background: #fff; }
+
+    /* ── CUSTOM CAPSULE EDITOR ── */
+    .custom-editor { padding: 12px 18px 32px; }
+
+    .field-group { margin-bottom: 22px; }
+    .field-label {
+      font-size: 10px; color: var(--primary-dim);
+      text-transform: uppercase; letter-spacing: 2px;
+      margin-bottom: 10px; font-weight: 700;
+    }
+
+    .field-input {
+      width: 100%; padding: 14px 18px;
+      background: linear-gradient(160deg, var(--card2), var(--card));
+      border: 1px solid var(--border-gold);
+      border-radius: 14px;
+      color: var(--text);
+      font-size: 15px;
+      font-family: inherit;
+      outline: none;
+      transition: border-color .2s, box-shadow .2s;
+    }
+    .field-input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(200,168,75,.12); }
+
+    .bars-selector { display: flex; gap: 8px; flex-wrap: wrap; }
+    .bar-opt {
+      width: 44px; height: 44px;
+      border-radius: 12px;
+      background: linear-gradient(160deg, var(--card2), var(--card));
+      border: 1px solid var(--border-gold);
+      color: var(--text-dim);
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: all .15s;
+    }
+    .bar-opt.selected {
+      background: linear-gradient(135deg, #e8c86a, #c8a84b);
+      border-color: transparent;
+      color: #07060a;
+      box-shadow: 0 4px 14px rgba(200,168,75,.3);
+    }
+
+    .color-selector { display: flex; gap: 12px; }
+    .color-opt {
+      width: 42px; height: 42px;
+      border-radius: 50%;
+      cursor: pointer;
+      border: 2px solid transparent;
+      transition: border-color .15s, transform .15s, box-shadow .15s;
+      box-shadow: 0 4px 12px rgba(0,0,0,.4);
+    }
+    .color-opt.selected { border-color: var(--primary); transform: scale(1.15); box-shadow: 0 4px 16px rgba(200,168,75,.3); }
+    .color-opt.c-brown  { background: linear-gradient(135deg,#6e3818,#321408); }
+    .color-opt.c-white  { background: linear-gradient(135deg,#f8ecda,#ddc898); }
+    .color-opt.c-blue   { background: linear-gradient(135deg,#2c4a6e,#12233a); }
+
+    .time-stepper { display: flex; align-items: center; gap: 14px; }
+    .stepper-btn {
+      width: 46px; height: 46px;
+      border-radius: 13px;
+      background: linear-gradient(160deg, var(--card2), var(--card));
+      border: 1px solid var(--border-gold);
+      color: var(--primary);
+      font-size: 22px;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: background .15s;
+    }
+    .stepper-btn:active { background: var(--border); }
+    .stepper-val { font-size: 30px; font-weight: 200; min-width: 64px; text-align: center; font-variant-numeric: tabular-nums; letter-spacing: -1px; }
+
+    .btn-save {
+      width: 100%; padding: 17px;
+      background: linear-gradient(135deg, #e8c86a, #c8a84b, #a07828);
+      color: #07060a;
+      border: none; border-radius: 16px;
+      font-size: 15px; font-weight: 800;
+      letter-spacing: 1.5px; text-transform: uppercase;
+      cursor: pointer; margin-top: 8px;
+      box-shadow: 0 6px 24px rgba(200,168,75,.25);
+    }
+    .btn-save:active { opacity: .85; transform: scale(.98); }
+
+    /* Preview mini-capsule */
+    .preview-row { display: flex; justify-content: center; padding: 12px 0; }
+    .mini-cap {
+      width: 56px; height: 82px;
+      border-radius: 28px 28px 22px 22px;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      gap: 6px; padding: 14px 8px 16px;
+      box-shadow: 0 10px 30px rgba(0,0,0,.6), 0 0 0 1px rgba(200,168,80,.15);
+    }
+    .mini-cap.white  { background: linear-gradient(155deg,#f8ecda,#ddc898); }
+    .mini-cap.brown  { background: linear-gradient(155deg,#6e3818,#321408); }
+    .mini-cap.blue   { background: linear-gradient(155deg,#2c4a6e,#12233a); }
+    .mini-bar { width: 32px; height: 3px; border-radius: 2px; }
+    .mini-cap.white .mini-bar { background: rgba(90,50,10,.55); }
+    .mini-cap.brown .mini-bar { background: rgba(255,200,120,.65); }
+    .mini-cap.blue  .mini-bar { background: rgba(150,210,255,.65); }
+
+    /* Delete button on custom cards */
+    .card-delete {
+      position: absolute;
+      top: 10px; left: 10px;
+      width: 26px; height: 26px;
+      border-radius: 8px;
+      background: rgba(160,50,35,.75);
+      border: 1px solid rgba(200,80,60,.4);
+      color: #ffb0a0;
+      font-size: 13px;
+      line-height: 1;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer;
+      transition: background .15s, transform .15s;
+      z-index: 5;
+    }
+    .card-delete:active { background: rgba(180,40,25,.9); transform: scale(.9); }
+
+    /* safe area padding at bottom */
+    .pb-safe { padding-bottom: calc(16px + env(safe-area-inset-bottom)); }
+  </style>
+</head>
+<body>
+<div id="app">
+
+  <!-- ═══════════════ HOME ═══════════════ -->
+  <div id="view-home" class="view active">
+    <div class="header">
+      <div>
+        <div class="header-title">♛ Barista King</div>
+        <div class="header-sub">Dolce Gusto Oblo</div>
+      </div>
+      <button class="icon-btn" onclick="showView('settings')" aria-label="Einstellungen">⚙️</button>
+    </div>
+    <div class="scroll-area">
+      <div class="drinks-grid" id="drinks-grid"></div>
+    </div>
+  </div>
+
+  <!-- ═══════════════ BREW ═══════════════ -->
+  <div id="view-brew" class="view">
+    <div class="header">
+      <button class="icon-btn" onclick="abortBrew()">←</button>
+      <div style="text-align:center">
+        <div class="header-title" id="brew-name"></div>
+        <div class="header-sub"  id="brew-sub"></div>
+      </div>
+      <div style="width:38px"></div>
+    </div>
+
+    <div class="brew-inner">
+      <div class="step-dots" id="step-dots"></div>
+
+      <div class="capsule-info">
+        <div class="capsule-label">Kapsel einlegen:</div>
+        <div class="capsule-type" id="brew-capsule-label"></div>
+      </div>
+
+      <div class="capsule-visual" id="brew-capsule">
+        <div class="capsule-bars" id="brew-bars"></div>
+      </div>
+
+      <div class="timer-block">
+        <div class="timer-num" id="brew-timer">0</div>
+        <div class="timer-unit">Sekunden verbleibend</div>
+        <div class="water-info" id="brew-water"></div>
+      </div>
+
+      <div class="progress-track" style="width:100%">
+        <div class="progress-fill" id="brew-progress" style="width:100%"></div>
+      </div>
+    </div>
+
+    <div style="padding: 0 24px">
+      <button class="btn-main start" id="btn-main" onclick="handleStartStop()">START</button>
+    </div>
+    <div class="pb-safe"></div>
+  </div>
+
+  <!-- ═══════════════ SETTINGS ═══════════════ -->
+  <div id="view-settings" class="view">
+    <div class="header">
+      <button class="icon-btn" onclick="showView('home')">←</button>
+      <div style="text-align:center">
+        <div class="header-title">Einstellungen</div>
+      </div>
+      <div style="width:38px"></div>
+    </div>
+    <div class="scroll-area">
+      <div class="settings-body">
+        <div class="settings-section-title">Benachrichtigungen</div>
+        <div class="settings-group">
+          <div class="settings-row">
+            <div>
+              <div class="row-label">Ton</div>
+              <div class="row-desc">Signalton wenn Timer abläuft</div>
+            </div>
+            <label class="toggle">
+              <input type="checkbox" id="set-sound" onchange="saveSettings()">
+              <span class="toggle-track"></span>
+            </label>
+          </div>
+          <div class="settings-row">
+            <div>
+              <div class="row-label">Vibration</div>
+              <div class="row-desc">Vibration wenn Timer abläuft</div>
+            </div>
+            <label class="toggle">
+              <input type="checkbox" id="set-vibration" onchange="saveSettings()">
+              <span class="toggle-track"></span>
+            </label>
+          </div>
+        </div>
+
+        <div class="settings-section-title">App</div>
+        <div class="settings-group">
+          <div class="settings-row">
+            <div class="row-label">Version</div>
+            <div style="color:var(--text-dim);font-size:13px">1.0.0</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════ CUSTOM EDITOR ═══════════════ -->
+  <div id="view-custom" class="view">
+    <div class="header">
+      <button class="icon-btn" onclick="showView('home')">←</button>
+      <div style="text-align:center">
+        <div class="header-title">Eigene Kapsel</div>
+      </div>
+      <div style="width:38px"></div>
+    </div>
+    <div class="scroll-area">
+      <div class="custom-editor">
+
+        <div class="field-group">
+          <div class="field-label">Name</div>
+          <input class="field-input" id="c-name" type="text" placeholder="z.B. Lungo Forte" maxlength="30">
+        </div>
+
+        <div class="field-group">
+          <div class="field-label">Brühzeit in Sekunden</div>
+          <div class="time-stepper">
+            <button class="stepper-btn" onclick="stepTime(-5)">−</button>
+            <div class="stepper-val" id="c-time-val">30</div>
+            <button class="stepper-btn" onclick="stepTime(+5)">+</button>
+          </div>
+        </div>
+
+        <div class="field-group">
+          <div class="field-label">Wassermenge (ml)</div>
+          <input class="field-input" id="c-water" type="number" placeholder="150" min="10" max="500">
+        </div>
+
+        <div class="field-group">
+          <div class="field-label">Anzahl Striche auf Kapsel</div>
+          <div class="bars-selector" id="bars-selector"></div>
+        </div>
+
+        <div class="field-group">
+          <div class="field-label">Kapselfarbe</div>
+          <div class="color-selector">
+            <div class="color-opt c-brown" data-color="brown" onclick="selectColor(this)" title="Braun"></div>
+            <div class="color-opt c-white" data-color="white" onclick="selectColor(this)" title="Weiß/Milch"></div>
+            <div class="color-opt c-blue"  data-color="blue"  onclick="selectColor(this)" title="Blau/Sonstige"></div>
+          </div>
+        </div>
+
+        <div class="field-group">
+          <div class="field-label">Vorschau</div>
+          <div class="preview-row">
+            <div class="mini-cap brown" id="mini-preview"></div>
+          </div>
+        </div>
+
+        <button class="btn-save" onclick="saveCustom()">💾 Speichern & Los</button>
+        <div style="height:20px"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── OVERLAY: Kapsel wechseln ── -->
+  <div class="overlay" id="ov-switch">
+    <div class="overlay-icon">🔄</div>
+    <div class="overlay-title" id="ov-switch-title">Kapsel wechseln!</div>
+    <div class="overlay-body"  id="ov-switch-body"></div>
+    <button class="btn-overlay" onclick="nextStep()">Weiter → Schritt <span id="ov-next-step">2</span></button>
+    <button class="btn-overlay secondary" onclick="abortBrew()">Abbrechen</button>
+  </div>
+
+  <!-- ── OVERLAY: Fertig ── -->
+  <div class="overlay" id="ov-done">
+    <div class="overlay-icon pop" id="ov-done-icon">☕</div>
+    <div class="overlay-title done-title">Guten Kaffee! ☕</div>
+    <div class="overlay-body" id="ov-done-body"></div>
+    <button class="btn-overlay" onclick="goHome()" style="margin-top:16px">Neue Zubereitung</button>
+  </div>
+
+</div>
+<script>
+/* ═══════════════════════════════════════════════════
+   DATA
+═══════════════════════════════════════════════════ */
+const PRESET_DRINKS = [
+  {
+    id: 'espresso', name: 'Espresso', emoji: '☕',
+    steps: [
+      { label: 'Espresso', capsule: 'brown', water: 50, time: 10, bars: 2 }
+    ]
+  },
+  {
+    id: 'grande', name: 'Grande', emoji: '☕',
+    steps: [
+      { label: 'Grande', capsule: 'brown', water: 200, time: 40, bars: 8 }
+    ]
+  },
+  {
+    id: 'americano', name: 'Americano', emoji: '☕',
+    steps: [
+      { label: 'Americano', capsule: 'brown', water: 230, time: 46, bars: 8 }
+    ]
+  },
+  {
+    id: 'chococino', name: 'Chococino', emoji: '🍫',
+    steps: [
+      { label: 'Milch',  capsule: 'white', water: 110, time: 22, bars: 4 },
+      { label: 'Schoko', capsule: 'brown', water: 100, time: 20, bars: 4 }
+    ]
+  },
+  {
+    id: 'cappuccino', name: 'Cappuccino', emoji: '☕',
+    steps: [
+      { label: 'Milch',    capsule: 'white', water: 170, time: 34, bars: 7 },
+      { label: 'Espresso', capsule: 'brown', water:  40, time:  8, bars: 2 }
+    ]
+  },
+  {
+    id: 'latte', name: 'Latte Macchiato Caramel', emoji: '🥛',
+    steps: [
+      { label: 'Milch',    capsule: 'white', water: 150, time: 30, bars: 6 },
+      { label: 'Espresso', capsule: 'brown', water:  50, time: 10, bars: 2 }
+    ]
+  }
+];
+
+/* ═══════════════════════════════════════════════════
+   STATE
+═══════════════════════════════════════════════════ */
+let drinks        = [...PRESET_DRINKS];
+let customDrinks  = [];
+
+let currentDrink  = null;
+let currentStep   = 0;
+let totalSec      = 0;
+let leftSec       = 0;
+let startTime     = null;
+let initialLeft   = 0;
+let timerRAF      = null;
+let isRunning     = false;
+
+let settings = { sound: true, vibration: true };
+
+/* ═══════════════════════════════════════════════════
+   CUSTOM EDITOR STATE
+═══════════════════════════════════════════════════ */
+let customTime  = 30;
+let customBars  = 4;
+let customColor = 'brown';
+
+/* ═══════════════════════════════════════════════════
+   INIT
+═══════════════════════════════════════════════════ */
+function init() {
+  loadSettings();
+  loadCustomDrinks();
+  buildDrinks();
+  renderGrid();
+  buildBarsSelector();
+  selectColor(document.querySelector('[data-color="brown"]'));
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('sw.js').catch(() => {});
+  }
+}
+
+/* ═══════════════════════════════════════════════════
+   VIEWS
+═══════════════════════════════════════════════════ */
+function showView(name) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.getElementById('view-' + name).classList.add('active');
+}
+
+/* ═══════════════════════════════════════════════════
+   SETTINGS
+═══════════════════════════════════════════════════ */
+function loadSettings() {
+  try {
+    const s = JSON.parse(localStorage.getItem('kaffee-settings') || '{}');
+    settings.sound     = s.sound     !== false;
+    settings.vibration = s.vibration !== false;
+  } catch(e) {}
+  document.getElementById('set-sound').checked     = settings.sound;
+  document.getElementById('set-vibration').checked = settings.vibration;
+}
+
+function saveSettings() {
+  settings.sound     = document.getElementById('set-sound').checked;
+  settings.vibration = document.getElementById('set-vibration').checked;
+  localStorage.setItem('kaffee-settings', JSON.stringify(settings));
+}
+
+/* ═══════════════════════════════════════════════════
+   CUSTOM DRINKS – persistence
+═══════════════════════════════════════════════════ */
+function loadCustomDrinks() {
+  try {
+    customDrinks = JSON.parse(localStorage.getItem('kaffee-custom') || '[]');
+  } catch(e) { customDrinks = []; }
+}
+
+function saveCustomDrinks() {
+  localStorage.setItem('kaffee-custom', JSON.stringify(customDrinks));
+}
+
+function deleteCustomDrink(id, name) {
+  if (!confirm(`„${name}" wirklich löschen?`)) return;
+  customDrinks = customDrinks.filter(d => d.id !== id);
+  saveCustomDrinks();
+  buildDrinks();
+  renderGrid();
+}
+
+function buildDrinks() {
+  drinks = [...PRESET_DRINKS, ...customDrinks];
+}
+
+/* ═══════════════════════════════════════════════════
+   HOME GRID
+═══════════════════════════════════════════════════ */
+function renderGrid() {
+  const grid = document.getElementById('drinks-grid');
+  grid.innerHTML = '';
+
+  drinks.forEach(drink => {
+    const totalTime = drink.steps.reduce((s, st) => s + st.time, 0);
+    const isMulti   = drink.steps.length > 1;
+    const isCustom  = !!drink._custom;
+
+    const card = document.createElement('div');
+    card.className = 'drink-card' + (isCustom ? ' custom-card' : '');
+    card.innerHTML = `
+      ${isCustom ? `<div class="card-delete" title="Löschen">✕</div>` : ''}
+      ${isMulti ? '<div class="multi-badge">2 Kapseln</div>' : ''}
+      <span class="card-emoji">${drink.emoji}</span>
+      <div class="card-name">${drink.name}</div>
+      <div class="card-time">~${totalTime} Sek.</div>
+      <div class="card-steps">${drink.steps.length} Kapsel${drink.steps.length > 1 ? 'n' : ''}</div>
+    `;
+    card.onclick = () => startDrink(drink);
+    if (isCustom) {
+      card.querySelector('.card-delete').addEventListener('click', e => {
+        e.stopPropagation();
+        deleteCustomDrink(drink.id, drink.name);
+      });
+    }
+    grid.appendChild(card);
+  });
+
+  // Custom card button
+  const add = document.createElement('div');
+  add.className = 'drink-card custom-card';
+  add.innerHTML = `
+    <span class="card-emoji">✚</span>
+    <div class="card-name">Eigene Kapsel</div>
+    <div class="card-steps">Individuell</div>
+  `;
+  add.onclick = () => openCustomEditor();
+  grid.appendChild(add);
+}
+
+/* ═══════════════════════════════════════════════════
+   CUSTOM EDITOR
+═══════════════════════════════════════════════════ */
+function buildBarsSelector() {
+  const sel = document.getElementById('bars-selector');
+  sel.innerHTML = '';
+  for (let i = 1; i <= 10; i++) {
+    const btn = document.createElement('div');
+    btn.className = 'bar-opt' + (i === customBars ? ' selected' : '');
+    btn.textContent = i;
+    btn.onclick = () => {
+      customBars = i;
+      document.querySelectorAll('.bar-opt').forEach(b => b.classList.remove('selected'));
+      btn.classList.add('selected');
+      updateMiniPreview();
+    };
+    sel.appendChild(btn);
+  }
+}
+
+function openCustomEditor() {
+  document.getElementById('c-name').value = '';
+  document.getElementById('c-water').value = '';
+  customTime  = 30;
+  customBars  = 4;
+  customColor = 'brown';
+  document.getElementById('c-time-val').textContent = customTime;
+  document.querySelectorAll('.bar-opt').forEach(b => {
+    b.classList.toggle('selected', parseInt(b.textContent) === customBars);
+  });
+  document.querySelectorAll('.color-opt').forEach(c => c.classList.remove('selected'));
+  const brownOpt = document.querySelector('[data-color="brown"]');
+  if (brownOpt) brownOpt.classList.add('selected');
+  updateMiniPreview();
+  showView('custom');
+}
+
+function stepTime(delta) {
+  customTime = Math.max(5, Math.min(300, customTime + delta));
+  document.getElementById('c-time-val').textContent = customTime;
+}
+
+function selectColor(el) {
+  document.querySelectorAll('.color-opt').forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
+  customColor = el.dataset.color;
+  updateMiniPreview();
+}
+
+function updateMiniPreview() {
+  const prev = document.getElementById('mini-preview');
+  prev.className = 'mini-cap ' + customColor;
+  prev.innerHTML = '';
+  for (let i = 0; i < customBars; i++) {
+    const b = document.createElement('div');
+    b.className = 'mini-bar';
+    prev.appendChild(b);
+  }
+}
+
+function saveCustom() {
+  const name  = document.getElementById('c-name').value.trim() || 'Eigene Kapsel';
+  const water = parseInt(document.getElementById('c-water').value) || 0;
+
+  const capsuleLabel = customColor === 'white' ? 'Weiße Kapsel (Milch)' :
+                       customColor === 'blue'  ? 'Blaue Kapsel' : 'Braune Kapsel';
+
+  const newDrink = {
+    id:      'custom_' + Date.now(),
+    name,
+    emoji:   '🫙',
+    _custom: true,
+    steps: [
+      {
+        label:   name,
+        capsule: customColor,
+        water:   water,
+        time:    customTime,
+        bars:    customBars
+      }
+    ]
+  };
+
+  customDrinks.push(newDrink);
+  saveCustomDrinks();
+  buildDrinks();
+  renderGrid();
+  startDrink(newDrink);
+}
+
+/* ═══════════════════════════════════════════════════
+   BREW – setup
+═══════════════════════════════════════════════════ */
+function startDrink(drink) {
+  currentDrink = drink;
+  currentStep  = 0;
+  isRunning    = false;
+  cancelAnimationFrame(timerRAF);
+  closeOverlays();
+  loadStep();
+  showView('brew');
+}
+
+function loadStep() {
+  const step  = currentDrink.steps[currentStep];
+  const total = currentDrink.steps.length;
+
+  // Header
+  document.getElementById('brew-name').textContent = currentDrink.name;
+  document.getElementById('brew-sub').textContent  =
+    total > 1 ? `Schritt ${currentStep + 1} von ${total}` : '';
+
+  // Step dots
+  const dots = document.getElementById('step-dots');
+  dots.innerHTML = '';
+  if (total > 1) {
+    for (let i = 0; i < total; i++) {
+      const d = document.createElement('div');
+      d.className = 'step-dot' +
+        (i === currentStep ? ' active' : i < currentStep ? ' done' : '');
+      dots.appendChild(d);
+    }
+  }
+
+  // Capsule type label
+  const labels = { brown: '🟫 Braune Kapsel', white: '⬜ Weiße Kapsel (Milch)', blue: '🔵 Blaue Kapsel' };
+  const colors = { brown: '#c8873a', white: '#f0c080', blue: '#70b0d0' };
+  const lbl = document.getElementById('brew-capsule-label');
+  lbl.textContent = labels[step.capsule] || '⬜ Kapsel';
+  lbl.style.color = colors[step.capsule] || 'var(--text)';
+
+  // Capsule visual
+  const cap = document.getElementById('brew-capsule');
+  cap.className = 'capsule-visual ' + (step.capsule === 'blue' ? 'custom-cap' : step.capsule);
+
+  // Bars
+  const barsEl = document.getElementById('brew-bars');
+  barsEl.innerHTML = '';
+  for (let i = 0; i < step.bars; i++) {
+    const b = document.createElement('div');
+    b.className = 'capsule-bar';
+    b.id = `bar-${i}`;
+    barsEl.appendChild(b);
+  }
+
+  // Timer
+  totalSec  = step.time;
+  leftSec   = step.time;
+  updateDisplay();
+
+  // Water
+  const waterEl = document.getElementById('brew-water');
+  waterEl.innerHTML = step.water
+    ? `Wassermenge: <strong>${step.water} ml</strong>`
+    : '';
+
+  // Button
+  setBtn('start', 'START');
+  isRunning = false;
+}
+
+/* ═══════════════════════════════════════════════════
+   BREW – timer
+═══════════════════════════════════════════════════ */
+function handleStartStop() {
+  if (isRunning) {
+    pauseTimer();
+  } else {
+    startTimer();
+  }
+}
+
+function startTimer() {
+  isRunning   = true;
+  startTime   = Date.now();
+  initialLeft = leftSec;
+  setBtn('running', 'STOPP');
+  tick();
+}
+
+function pauseTimer() {
+  isRunning = false;
+  cancelAnimationFrame(timerRAF);
+  setBtn('resume', 'FORTSETZEN');
+}
+
+function tick() {
+  if (!isRunning) return;
+  const elapsed = (Date.now() - startTime) / 1000;
+  leftSec = Math.max(0, initialLeft - elapsed);
+  updateDisplay();
+  if (leftSec <= 0) {
+    isRunning = false;
+    leftSec   = 0;
+    updateDisplay();
+    onStepDone();
+    return;
+  }
+  timerRAF = requestAnimationFrame(tick);
+}
+
+function updateDisplay() {
+  const step    = currentDrink.steps[currentStep];
+  const ratio   = totalSec > 0 ? leftSec / totalSec : 0;
+  const secInt  = Math.ceil(leftSec);
+
+  // Number
+  const numEl = document.getElementById('brew-timer');
+  numEl.textContent = secInt;
+  numEl.style.color = ratio > 0.3 ? 'var(--text)' : ratio > 0.1 ? '#f0a030' : '#e04000';
+
+  // Progress bar
+  const fill = document.getElementById('brew-progress');
+  fill.style.width      = (ratio * 100) + '%';
+  fill.style.background = ratio > 0.3 ? 'var(--primary)' : ratio > 0.1 ? '#e08020' : '#c0392b';
+
+  // Bars: disappear top-to-bottom as time runs out
+  const barsToShow = Math.ceil(step.bars * ratio);
+  for (let i = 0; i < step.bars; i++) {
+    const b = document.getElementById(`bar-${i}`);
+    if (!b) continue;
+    // i=0 is top bar → first to go
+    // shown when i >= step.bars - barsToShow
+    const shown = i >= step.bars - barsToShow;
+    b.classList.toggle('empty', !shown);
+  }
+}
+
+/* ═══════════════════════════════════════════════════
+   BREW – step done
+═══════════════════════════════════════════════════ */
+function onStepDone() {
+  playDone();
+  const total = currentDrink.steps.length;
+  if (currentStep + 1 < total) {
+    // Show switch overlay
+    const next = currentDrink.steps[currentStep + 1];
+    const nextLabels = { brown: 'braune', white: 'weiße (Milch-)', blue: 'blaue' };
+    document.getElementById('ov-switch-title').textContent = 'Kapsel wechseln!';
+    document.getElementById('ov-switch-body').textContent  =
+      `Lege jetzt die ${nextLabels[next.capsule] || ''} Kapsel ein und drücke dann auf „Weiter".`;
+    document.getElementById('ov-next-step').textContent    = currentStep + 2;
+    document.getElementById('ov-switch').classList.add('show');
+  } else {
+    // Done!
+    document.getElementById('ov-done-icon').textContent = currentDrink.emoji;
+    document.getElementById('ov-done-body').textContent = currentDrink.name + ' ist fertig!';
+    document.getElementById('ov-done').classList.add('show');
+  }
+}
+
+function nextStep() {
+  document.getElementById('ov-switch').classList.remove('show');
+  currentStep++;
+  loadStep();
+}
+
+function abortBrew() {
+  cancelAnimationFrame(timerRAF);
+  isRunning = false;
+  closeOverlays();
+  showView('home');
+}
+
+function goHome() {
+  closeOverlays();
+  showView('home');
+}
+
+function closeOverlays() {
+  document.getElementById('ov-switch').classList.remove('show');
+  document.getElementById('ov-done').classList.remove('show');
+}
+
+/* ═══════════════════════════════════════════════════
+   UI HELPERS
+═══════════════════════════════════════════════════ */
+function setBtn(type, label) {
+  const btn = document.getElementById('btn-main');
+  btn.textContent = label;
+  btn.className   = 'btn-main ' + type;
+}
+
+/* ═══════════════════════════════════════════════════
+   AUDIO
+═══════════════════════════════════════════════════ */
+let audioCtx = null;
+function getAudioCtx() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  return audioCtx;
+}
+
+function beep(freq, start, dur) {
+  try {
+    const ctx  = getAudioCtx();
+    const osc  = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.type = 'sine';
+    osc.frequency.value = freq;
+    gain.gain.setValueAtTime(0, ctx.currentTime + start);
+    gain.gain.linearRampToValueAtTime(0.28, ctx.currentTime + start + 0.05);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + start + dur);
+    osc.start(ctx.currentTime + start);
+    osc.stop(ctx.currentTime + start + dur + 0.05);
+  } catch(e) {}
+}
+
+function playDone() {
+  if (settings.sound) {
+    beep(880,  0,    0.18);
+    beep(1100, 0.22, 0.18);
+    beep(1320, 0.44, 0.38);
+  }
+  if (settings.vibration && navigator.vibrate) {
+    navigator.vibrate([180, 80, 180, 80, 380]);
+  }
+}
+
+/* ═══════════════════════════════════════════════════
+   START
+═══════════════════════════════════════════════════ */
+init();
+</script>
+</body>
+</html>

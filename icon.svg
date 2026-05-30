@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192">
+  <rect width="192" height="192" rx="42" fill="#0f0a07"/>
+  <!-- Kapsel-Form -->
+  <rect x="76" y="32" width="40" height="118" rx="20" fill="url(#cg)"/>
+  <!-- Oben-Kerbe -->
+  <rect x="88" y="32" width="16" height="14" rx="0" fill="rgba(0,0,0,0.3)"/>
+  <!-- Striche -->
+  <rect x="84" y="56"  width="24" height="5" rx="2.5" fill="rgba(255,200,100,0.7)"/>
+  <rect x="84" y="70"  width="24" height="5" rx="2.5" fill="rgba(255,200,100,0.7)"/>
+  <rect x="84" y="84"  width="24" height="5" rx="2.5" fill="rgba(255,200,100,0.7)"/>
+  <rect x="84" y="98"  width="24" height="5" rx="2.5" fill="rgba(255,200,100,0.7)"/>
+  <rect x="84" y="112" width="24" height="5" rx="2.5" fill="rgba(255,200,100,0.7)"/>
+  <!-- Dampf -->
+  <path d="M80 162 Q84 152 80 142" stroke="#c8873a" stroke-width="3" fill="none" stroke-linecap="round"/>
+  <path d="M96 162 Q100 152 96 142" stroke="#c8873a" stroke-width="3" fill="none" stroke-linecap="round"/>
+  <path d="M112 162 Q116 152 112 142" stroke="#c8873a" stroke-width="3" fill="none" stroke-linecap="round"/>
+  <defs>
+    <linearGradient id="cg" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#7a4020"/>
+      <stop offset="100%" stop-color="#4a2010"/>
+    </linearGradient>
+  </defs>
+</svg>

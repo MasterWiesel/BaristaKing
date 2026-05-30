@@ -1,0 +1,13 @@
+{
+  "name": "Barista King",
+  "short_name": "Barista King",
+  "description": "Dolce Gusto Oblo – Brüh-Timer",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#0f0a07",
+  "theme_color": "#0f0a07",
+  "orientation": "portrait-primary",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}
